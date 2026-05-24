@@ -10,6 +10,8 @@ import {
   Cloud,
 } from 'lucide-react'
 
+import { useAuth } from '../context/AuthContext'
+
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Link2, label: 'Link New Drive', path: '/linknewdrive' },
@@ -20,8 +22,10 @@ const sidebarItems = [
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   const handleLogout = () => {
+    logout()
     navigate('/login')
   }
 

@@ -1,14 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, ArrowRight, Cloud, Shield, Zap, HardDrive, Loader2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { login, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Redirect to dashboard if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    }
+  }, [isAuthenticated, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,8 +39,8 @@ export default function Login() {
         return
       }
 
-      // Store JWT token and redirect to dashboard
-      localStorage.setItem('prive_token', data.token)
+      // Store JWT token in global context and redirect
+      login(data.token)
       navigate('/dashboard')
     } catch (err) {
       setError('Unable to connect to server')
