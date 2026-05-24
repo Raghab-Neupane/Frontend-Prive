@@ -1,16 +1,42 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Cloud, Shield, Zap, HardDrive } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Cloud, Shield, Zap, HardDrive, Loader2 } from 'lucide-react'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Backend connection will be added later
-    console.log('Login:', { email, password })
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('http://localhost:8080/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed')
+        setLoading(false)
+        return
+      }
+
+      // Store JWT token and redirect to dashboard
+      localStorage.setItem('prive_token', data.token)
+      navigate('/dashboard')
+    } catch (err) {
+      setError('Unable to connect to server')
+      setLoading(false)
+    }
   }
 
   const floatingCards = [
@@ -87,15 +113,37 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium"
+                id="login-error"
+              >
+                {error}
+              </motion.div>
+            )}
+
             <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              whileHover={loading ? {} : { scale: 1.01 }}
+              whileTap={loading ? {} : { scale: 0.99 }}
               type="submit"
+              disabled={loading}
               id="login-submit"
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5"
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sign in
-              <ArrowRight size={18} />
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight size={18} />
+                </>
+              )}
             </motion.button>
           </form>
 

@@ -1,23 +1,69 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { User, Mail, Lock, ArrowRight, Cloud, FolderSync, Globe, ShieldCheck } from 'lucide-react'
+import { User, Mail, Lock, ArrowRight, Cloud, FolderSync, Globe, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function CreateUser() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
   })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const update = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Backend connection will be added later
-    console.log('Create user:', form)
+    setError('')
+    setSuccess('')
+
+    // Client-side password match validation
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch('http://localhost:8080/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: form.username,
+          email: form.email,
+          password: form.password,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to create account')
+        setLoading(false)
+        return
+      }
+
+      setSuccess('Account created successfully! Redirecting to login...')
+      setLoading(false)
+
+      // Redirect to login after short delay
+      setTimeout(() => navigate('/login'), 1500)
+    } catch (err) {
+      setError('Unable to connect to server')
+      setLoading(false)
+    }
   }
 
   const features = [
@@ -185,16 +231,50 @@ export default function CreateUser() {
                 />
               </div>
             </div>
+            {/* Error message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium"
+                id="createuser-error"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            {/* Success message */}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-sm font-medium flex items-center gap-2"
+                id="createuser-success"
+              >
+                <CheckCircle2 size={16} />
+                {success}
+              </motion.div>
+            )}
 
             <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              whileHover={loading ? {} : { scale: 1.01 }}
+              whileTap={loading ? {} : { scale: 0.99 }}
               type="submit"
+              disabled={loading}
               id="createuser-submit"
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 !mt-6"
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 !mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Create account
-              <ArrowRight size={18} />
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight size={18} />
+                </>
+              )}
             </motion.button>
           </form>
 
